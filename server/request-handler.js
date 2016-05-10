@@ -85,11 +85,7 @@ var requestHandler = (request, response) => {
       statusCode = 201;
       request.on('data', (data) => {
         var newObj = JSON.parse(data);
-        // if (!(data.results.length) && data.results.length > 0) {
         newObj.objectId = datas.results[datas.results.length - 1].objectId + 1;
-        // } else {
-        //   newObj.objectId = 0;
-        // }
         datas.results.push(newObj);
         fs.appendFile('message.txt', (JSON.stringify(newObj) + ', '), (err) => {
           if (err) {
