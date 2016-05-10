@@ -13,16 +13,28 @@ this file and include it in basic-server.js so that it actually works.
 
 **************************************************************/
 
+var fs = require('fs');
+
 var datas = {
-  results: [{
-    username: 'myNameIsJeff',
-    roomname: 'craycray',
-    text: 'datshietcray',
-    objectId: 0
-  }]
+  results: []
 };
 
-var requestHandler = function(request, response) {
+var onServerStart = () => {
+  fs.readFile('message.txt', 'utf8', (err, data) => {
+    if (err) {
+      console.log(err);
+    } else {
+      var splitObj = data.split(', ');
+      for (var i = 0; i < splitObj.length - 1; i++) {
+        datas.results.push(JSON.parse(splitObj[i]));
+      }
+    }
+  });
+};
+
+onServerStart();
+
+var requestHandler = (request, response) => {
   // Request and Response come from node's http module.
   //
   // They include information about both the incoming request, such as
@@ -44,21 +56,6 @@ var requestHandler = function(request, response) {
 
   // See the note below about CORS headers.
   var headers = defaultCorsHeaders;
-
-  // request.url.match(/\/classes\/messages/);
-  if ( !request.url.match(/\/classes\/messages/) ) {
-    statusCode = 404;
-  }
-
-  if ( request.method === 'POST' ) {
-    statusCode = 201;
-    request.on('data', (data) => {
-      var newObj = JSON.parse(data);
-      newObj.objectId = datas.results[datas.results.length - 1].objectId + 1;
-      datas.results.push(newObj);
-    });
-  }
-
   // Tell the client we are sending them plain text.
   //
   // You will need to change this if you are sending something
@@ -69,15 +66,49 @@ var requestHandler = function(request, response) {
   // which includes the status and all headers.
   response.writeHead(statusCode, headers);
 
-  // Make sure to always call response.end() - Node may not send
-  // anything back to the client until you do. The string you pass to
-  // response.end() will be the body of the response - i.e. what shows
-  // up in the browser.
-  //
-  // Calling .end "flushes" the response's internal buffer, forcing
-  // node to actually send all the data over to the client.
-  response.end(JSON.stringify(datas));
+  if (request.url === '/') {
+    console.log('home');
+    fs.readFile('../client/index.html', (err, data) => {
+      if (err) {
+        console.log(err);
+      } else {
+        headers['Content-Type'] = 'html';
+        response.writeHead(statusCode, headers);
+        response.end(data);
+      }
+    });
+  } else if (!request.url.match(/\/classes\/messages/)) {
+    statusCode = 404;
+    response.end ('Error: Page not found.');
+  } else {
+    if (request.method === 'POST') {
+      statusCode = 201;
+      request.on('data', (data) => {
+        var newObj = JSON.parse(data);
+        // if (!(data.results.length) && data.results.length > 0) {
+        newObj.objectId = datas.results[datas.results.length - 1].objectId + 1;
+        // } else {
+        //   newObj.objectId = 0;
+        // }
+        datas.results.push(newObj);
+        fs.appendFile('message.txt', (JSON.stringify(newObj) + ', '), (err) => {
+          if (err) {
+            console.log(err);
+          } 
+        });
+      });
+    }
+    // Make sure to always call response.end() - Node may not send
+    // anything back to the client until you do. The string you pass to
+    // response.end() will be the body of the response - i.e. what shows
+    // up in the browser.
+    //
+    // Calling .end "flushes" the response's internal buffer, forcing
+    // node to actually send all the data over to the client.
+    response.end(JSON.stringify(datas));
+  }
 };
+
 
 // These headers will allow Cross-Origin Resource Sharing (CORS).
 // This code allows this server to talk to websites that

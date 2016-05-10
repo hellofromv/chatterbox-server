@@ -61,7 +61,6 @@ var app = {
       data: { order: '-createdAt'},
       success: function(data) {
         // Don't bother if we have nothing to work with
-        console.log(data);
         if (!data.results || !data.results.length) { return; }
 
         // Get the last message
@@ -141,7 +140,6 @@ var app = {
   },
 
   addMessage: function(data) {
-    console.log(data);
     if (!data.roomname) {
       data.roomname = 'lobby';
     }
